@@ -1,2 +1,2 @@
 # Data-Mining-Algorithms
-A repository of Data Mining algorithms.
+A repository of data mining algorithms.

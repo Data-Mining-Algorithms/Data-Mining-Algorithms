@@ -8,10 +8,9 @@ This project was developed for the Data Mining module at Teesside University wit
 * [MovieLens](https://grouplens.org/datasets/movielens/100k/) - 100k Rating Records from 1000 users on 1700 movies. 
 
 
-
 ## Contributors
 [Aleksandra Petkova](https://github.com/aleksandra1617) - Association Rules Mining Algorithm (Core Python);
 
-[Nour Aldin](https://github.com/NourAldinAlmubarak) - Association Rules Mining Algorithm (MLextend, Python);
+[Nour Aldin](https://github.com/NourAldinAlmubarak) - Association Rules Mining Algorithm (MLextend, Xlrd, Python);
 
 [Victor Essien](https://github.com/vicrichy87) - Collaborative Filtering.

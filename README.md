@@ -10,5 +10,7 @@ This project was developed for the Data Mining module at Teesside University wit
 
 ## Contributors
 [Aleksandra Petkova](https://github.com/aleksandra1617) - Association Rules Mining Algorithm (Core Python);
+
 [Nour Aldin](https://github.com/NourAldinAlmubarak) - Association Rules Mining Algorithm (MLextend, Python);
+
 [Victor Essien](https://github.com/vicrichy87) - Collaborative Filtering.

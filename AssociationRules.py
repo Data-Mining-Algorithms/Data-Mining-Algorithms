@@ -19,7 +19,6 @@ import csv
 import pickle
 from functools import reduce
 from operator import add
-from itertools import combinations
 
 from HashTree import HashTree, generate_subsets
 from Utilities import time_function

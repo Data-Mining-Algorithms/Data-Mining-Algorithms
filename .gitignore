@@ -1,5 +1,6 @@
 {\rtf1}
 Data Repository/Online Retail.csv
+
 .idea/Data-Mining-Algorithms.iml
 .idea/inspectionProfiles/profiles_settings.xml
 .idea/misc.xml
@@ -9,3 +10,4 @@ __pycache__/HashTree.cpython-36.pyc
 __pycache__/Utilities.cpython-36.pyc
 __pycache__/AssociationRulesCore.cpython-36.pyc
 ~WRL1991.tmp
+

@@ -281,29 +281,30 @@ class AssociationRules:
 
                 curr_items = [item for item in curr_items if item not in to_remove]
 
-                for m in range(1, k - 1):
-                    if k > m + 1:
-                        H_next = self.generate_combinations(curr_items)
-                        to_remove = []
-                        for item in H_next:
-                            X = tuple(sorted(set(itemset) - set(item)))
-                            Y = tuple(sorted(item))
-                            confidence = support / (frequent_items[k - m - 2][X])
-                            if confidence > self.MIN_CONF:
-                                rule = []
-                                rule.append(X)
-                                rule.append(Y)
-                                rules.append({tuple(rule): confidence})
-                            else:
-                                to_remove.append(item)
-                        H_next = [x for x in H_next if x not in to_remove]
-                        curr_items = H_next
-                    else:
-                        break
+                if len(curr_items) > 1:
+                    for m in range(1, k - 1):
+                        if k > m + 1:
+                            next = self.generate_combinations(curr_items)
+                            to_remove = []
+                            for item in next:
+                                X = tuple(sorted(set(itemset) - set(item)))
+                                Y = tuple(sorted(item))
+                                confidence = support / (frequent_items[k - m - 2][X])
+                                if confidence > self.MIN_CONF:
+                                    rule = []
+                                    rule.append(X)
+                                    rule.append(Y)
+                                    rules.append({tuple(rule): confidence})
+                                else:
+                                    to_remove.append(item)
+                            next = [x for x in next if x not in to_remove]
+                            curr_items = next
+                        else:
+                            break
         return rules
 
     # TODO: Check if more efficient and if so make into static function.
-    def display_rules(self, rules, frequent_items, write=False):
+    def display_rules(self, dataset_name, rules, frequent_items, write=False):
         """
         Function to display and write rules to file in the prescribed format.
 
@@ -324,26 +325,25 @@ class AssociationRules:
         with open(os.getcwd()+'\\outputs\\association_rules.txt', 'w+') as fo:
             for rule in rules:
                 X, Y = list(rule.keys())[0]
-
-                precedent_support_count, antecedent_support_count = (
-                    frequent_items[len(X) - 1][X], frequent_items[len(Y) - 1][Y]
-                )
-
+                x_support_count, y_support_count = (frequent_items[len(X) - 1][X], frequent_items[len(Y) - 1][Y])
                 confidence = list(rule.values())[0]
 
-                print(str([reverse_map[x] for x in X]).strip(bad_chars).replace("'", '') + '(' + str(
-                    precedent_support_count) + ')' + ' ---> ' + str([reverse_map[y] for y in Y]).strip(bad_chars).replace(
-                    "'", '') + '(' + str(antecedent_support_count) + ')' + ' - conf(' + str(confidence) + ')')
+                rule_string = '{' + str([reverse_map[x] for x in X]).strip(bad_chars).replace("'", '') + '}, sup(' \
+                    + str(x_support_count) + '), rel sup(' + str(round(x_support_count/len(self.transactions)*100)) \
+                    + '%) ---> {' + str([reverse_map[y] for y in Y]).strip(bad_chars).replace("'", '') + '}, sup('\
+                    + str(y_support_count) + '), rel sup(' + str(round(y_support_count/len(self.transactions)*100)) \
+                    + '%)' + ' - conf(' + str(round(confidence*100)) + '%)'
 
-                fo.write(str([reverse_map[x] for x in X]).strip(bad_chars).replace("'", '') + '(' + str(
-                    precedent_support_count) + ')' + ' ---> ' + str([reverse_map[y] for y in Y]).strip(bad_chars).replace(
-                    "'", '') + '(' + str(antecedent_support_count) + ')' + ' - conf(' + str(confidence) + ')' + '\n')
+                print(rule_string)
+                fo.write(rule_string + '\n')
 
         with open(os.getcwd()+'\\outputs\\frequent_itemsets.txt', 'w+') as fo:
+            fo.write("Dataset: " + dataset_name + "\n")
             for k_itemset in frequent_items:
                 for itemset, support in k_itemset.items():
-                    fo.write(str([reverse_map[x] for x in itemset]).strip(bad_chars).replace("'", '') + ' (' + str(
+                    fo.write(str([reverse_map[x] for x in itemset]).strip(bad_chars).replace("'", '') + ' sup(' + str(
                         support) + ')' + '\n')
+            fo.write("\n\n")
 
 
 if __name__ == '__main__':
@@ -354,9 +354,9 @@ if __name__ == '__main__':
     frequent_items = rules.generate_frequent_itemsets()
 
     print("\nRULE GENERATION..")
-    associations = rules.generate_rules(frequent_items)
     print("FILTERING RULES WITH LOW CONFIDENCE...\n\nSURVIVED ASSOCIATION RULES: ")
-    rules.display_rules(associations, frequent_items, write=True)
+    associations = rules.generate_rules(frequent_items)
+    rules.display_rules('groceries.csv', associations, frequent_items, write=True)
     num_itemsets = 0
 
     print("")

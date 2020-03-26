@@ -20,7 +20,7 @@
 
 # Runs association rules mining core
 def run_ARMC():
-    print("TODO: ARMC CODE HERE") # This print never runs, the dictionary ignores them. TODO: Find out why.
+    print("TODO: ARMC CODE HERE")
     a = 10
     a += 1
     return a
@@ -28,11 +28,11 @@ def run_ARMC():
 
 # Runs association rules mining with library
 def run_ARML():
-    print("TODO: ARML CODE HERE")  # This print never runs, the dictionary ignores them. TODO: Find out why.
+    print("TODO: ARML CODE HERE")
 
 
 def run_CFL():
-    print("TODO: CFL CODE HERE")  # This print never runs, the dictionary ignores them. TODO: Find out why.
+    print("TODO: CFL CODE HERE")
 
 
 def main():

@@ -19,16 +19,16 @@ import csv
 import pickle
 from functools import reduce
 from operator import add
+import re
 
 from HashTree import HashTree, generate_subsets
 from Utilities import time_function
 
 
-# TODO: Print the support value for X union Y in the same format as the slides
 # TODO: Check all possible rules for a subset and which one has strong confidence.
 # TODO: Create graph visualisation
 
-# region SETUP REGION
+# region DATA PRE-PROCESSING
 @time_function
 def load_data(path):
     """
@@ -46,6 +46,8 @@ def load_data(path):
     with open(path, 'r') as file_object:
         reader = csv.reader(file_object)
         dataset = list(reader)
+
+    dataset = clean_data(dataset[1:])
 
     # Reduces the dimension of the dataset from 2D to 1D. This is done by applying the add function from
     # the operator module to all rows in the dataset, equivalent to -> for row in dataset: temp_list += row.
@@ -94,6 +96,187 @@ def applymap(transaction, map_):
     (dict) element_map: mapped transaction.
     """
     return [map_[item] for item in transaction]
+
+
+def missing_data_scan(num_columns, dataset):
+    """
+    Scans the dataset for missing data and displays the insights to the user.
+
+    Parameters
+    ----------
+    (int) num_columns:
+    (int) num_rows:
+    (2D list) dataset:
+
+    Returns
+    -------
+    (dict) missing_data_pos: dictionary that contains a list of the rows that have missing data, for each column.
+    """
+    # "missing_data_pos" contains a list of rowIds for for each column.
+    # Format => {columnID0: [rowID0, rowID1, ...], columnID1: [rowID0, rowID1, ...], ...}
+    # Generate the compromised_rows and missing_data_pos dictionaries.
+    missing_data_pos = {count: [] for count in range(num_columns)}
+
+    num_rows = len(dataset)
+
+    # Look through the dataset cell by cell and check if the data is missing.
+    for row_count in range(num_rows):
+        row = dataset[row_count]
+        print("Scanning row..")
+
+        for column_count in range(len(row)):
+            column = row[column_count]
+
+            # First check for missing data, if it is missing no point applying a complete regex validation on it.
+            # A full match request of this regex --> "\s+" means there are only spaces in the column string.
+            if column == "" or re.fullmatch("\s+", column):
+                missing_data_pos[column_count].append(row_count)
+
+    # region Display the missing data information.
+    print("\tMissing Value Count:")
+    for column_id in missing_data_pos:
+        print("\tColumnID:", column_id, ",  Num Rows:", len(missing_data_pos[column_id]))
+
+    return missing_data_pos
+
+
+def regex_validation(dataset):
+    """
+    Regular expressions are a great way to scan the dataset for any abnormalities, it can also be used for
+    more complex searching.
+
+    Found this website which allows extensive testing of the regexs, the link provided is the one used to test
+    the AllNumbers regex: https://regex101.com/r/I8k3th/2
+
+    1) AllNumbers-S "^\d[\d]*$" - all characters in the column string are numbers, can be in any order
+       but no spaces allowed.
+    2) AnyCharOrNum+S - 2 or more of any character and digit including spaces, but not just spaces.
+    3) UnitPrice - "^£{0,1}([0-9]+\.[0-9]*[1-9]+)|([1-9][0-9]*)" - Must contain any number of digits + . + 2 or more digits
+       Format that passes this regex: £3.44, 78.95, 213548.897
+    4) Date - "^([0]\d|[1][0-2])\/([0-2]\d|[3][0-1])\/([2][01]|[1][6-9])\d{2}(\s([0-1]\d|[2][0-3])(\:[0-5]\d){1,2})?$"
+       This is a regular expression to validate a date string in the formats:
+       DD/MM/YYYY; DD/MM/YYYY HH:MM; DD/MM/YYYY HH:MM:SS
+    5) TitleCaseWords - "[A-Z][a-z]+" - any word that starts with capital letter but the rest are all lowercase letters.
+    """
+    # This list contains some common pre-constructed regex to allow easy reuse.
+    prep_regex = {"EmptyOrJustSpaces": "\s", "AllNumbers-S": "^\d[\d]*$", "AnyCharOrNum+S": ".+",
+                  "UnitPrice": "^£{0,1}([0-9]+\.[0-9]*[1-9]+)|([1-9][0-9]*)", "TitleCaseWords": "[A-Z][a-z]+",
+                  "Date": "(^([0-2]\d|[3][0-1])\/([0]\d|[1][0-2])\/([2][01]|[1][6-9])\d{2}(\s{1,4}([0-1]\d|[2][0-3])(\:[0-5]\d){1,2})?$)"
+                  }
+
+    # The index of this list represents the column index in the dataset.
+    prep_str = [["\d{6}"], ["\d{5}"], [prep_regex["AnyCharOrNum+S"]], [prep_regex["AllNumbers-S"]],
+                [prep_regex["Date"]], [prep_regex["UnitPrice"]], ["\d{5}"], [prep_regex["TitleCaseWords"]]]
+
+    num_columns = len(dataset[0])
+    # "compromised_rows" contains a list of compromised entries for each column.
+    # Format => {columnID0: {rowID0: data0}, columnID1: {rowID1: data1}, ...}
+    # Example Structure: {0: {50:"0"}, 1: {8:"85099C"}, 2:{}}
+    compromised_rows = {count: {} for count in range(num_columns)}
+
+    # Look through the dataset cell by cell and apply the regex validation to each cell/value.
+    for row_count in range(len(dataset)):
+        row = dataset[row_count]
+        print("Scanning row..")
+
+        for column_count in range(len(row)):
+            column = row[column_count]
+
+            # Fetch the all the validation strings for the column
+            curr_regex = None
+            for regex in prep_str[column_count]:
+                curr_regex = regex
+
+            # Extract the data that does not match the set format by applying regex validation on it.
+            if not (re.fullmatch(curr_regex, column)):
+                compromised_rows[column_count].update({row_count: column})
+
+    # region Display the information extracted from the pre-processing.
+    print("\n\tPotentially Erroneous Data:")
+    for column_id in compromised_rows:
+        print("\t- ColumnID:", column_id, ",  Num Rows:", len(compromised_rows[column_id]))
+    # print("\n Frequency & Recency Calculations for the Period (01/12/2010 to 09/12/2011): ")
+
+    inspect = input("\nWould you like to inspect the abnormalities in the data? (Y/N)\n")
+
+    while inspect.upper() == "Y":
+        selected_column = input("Please enter the ColumnID of the column you are interested in here: ")
+
+        # Check that the entered input is valid ColumnID
+        if selected_column.isdigit() and (0 <= int(selected_column) < num_columns):
+            for key, value in compromised_rows[int(selected_column)].items():
+                print("Value -->  ", value, " found at row -->  ", key)
+
+            print("\n\tPotentially Erroneous Data:")
+            for column_id in compromised_rows:
+                print("ColumnID:", column_id, ",  Num Rows:", len(compromised_rows[column_id]))
+
+            inspect = input("\nWould you like to inspect another column? (Y/N)\n")
+        else:
+            print("Invalid Input, the ColumnID ranges from 0 to", num_columns - 1, "!")
+    # endregion
+    """
+    # This code is not essential for the overall program so it has been commented out to improve performance. 
+    cust_invo_match = {}
+
+    for i in range(len(dataset)):
+        row = dataset[i]
+        invoice_id = row[0]
+        customer_id = row[6]
+
+        if invoice_id not in cust_invo_match:
+            cust_invo_match.update({invoice_id: [customer_id]})
+        else:
+            if customer_id not in cust_invo_match[invoice_id]:
+                cust_invo_match[invoice_id].append(customer_id)
+
+    print("Num Invoices (Unique Invoice IDS): ", len(cust_invo_match.keys()))
+
+    single_custID = 0
+    for value in cust_invo_match.values():
+        if len(value) == 1:
+            single_custID += 1
+
+    print("Num Invoices with single CustomerID: ", single_custID)"""
+
+    return dataset
+
+
+def clean_data(dataset):
+    """
+        Cleans the loaded data according to the pre-processing strings - prep_str, which are constructed with
+        regular expressions (regex).
+
+        (string list) prep_str: 2D List of encoded strings that describes the type of pre-processing needed.
+        Each column may have 0 or more pre-processing strings to be executed.
+        The prep_str should be in this format for dataset with 3 columns -->  [[], [], []]
+        each inner list contains the (regexs) for a column.
+
+        Parameters
+        ----------
+        (list) dataset: contains the loaded row data from the dataset.
+        (bool) insight_required: this variable turn on and off the insight generation about the missing and erroneous data found.
+
+        Returns
+        -------
+        (list) dataset: 2D list that contains the now clean dataset.
+    """
+    cleaner_dataset = []
+    num_columns = len(dataset[0])
+    missing_data_pos = missing_data_scan(num_columns, dataset)
+
+    if input("\nWould you like to remove all the missing data? Y/N\n").upper() == "Y":
+        for row_id in range(len(dataset)):
+            for column_id in missing_data_pos:
+                if len(missing_data_pos[column_id]) != 0:
+                    if row_id not in missing_data_pos[column_id]:
+                        cleaner_dataset.append(dataset[row_id])
+                    else:
+                        index = missing_data_pos[column_id].index(row_id)
+                        del missing_data_pos[column_id][index]
+
+    return cleaner_dataset
+
 # endregion
 
 
@@ -346,7 +529,7 @@ class AssociationRules:
 
 
 if __name__ == '__main__':
-    path = os.getcwd()+'\\Data Repository\\groceries.csv'     # simple_dataset,   groceries
+    path = os.getcwd()+'\\Data Repository\\Online Retail.csv'     # simple_dataset, groceries, Online Retail
     rules = AssociationRules(path)  # TODO: Convert to Singleton.
 
     # All the itemsets that have survived Apriori

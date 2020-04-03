@@ -16,6 +16,7 @@
 
 import os
 import csv
+import copy
 import pickle
 from functools import reduce
 from operator import add
@@ -30,7 +31,7 @@ from Utilities import time_function
 
 # region DATA PRE-PROCESSING
 @time_function
-def load_data(path):
+def load_data(path, prep_required=False):
     """
     Reads the dataset row by row.
 
@@ -47,7 +48,8 @@ def load_data(path):
         reader = csv.reader(file_object)
         dataset = list(reader)
 
-    dataset = clean_data(dataset[1:])
+    if prep_required:
+        dataset = clean_data(copy.deepcopy(dataset[1:]))
 
     # Reduces the dimension of the dataset from 2D to 1D. This is done by applying the add function from
     # the operator module to all rows in the dataset, equivalent to -> for row in dataset: temp_list += row.
@@ -98,6 +100,7 @@ def applymap(transaction, map_):
     return [map_[item] for item in transaction]
 
 
+@time_function
 def missing_data_scan(num_columns, dataset):
     """
     Scans the dataset for missing data and displays the insights to the user.
@@ -122,7 +125,7 @@ def missing_data_scan(num_columns, dataset):
     # Look through the dataset cell by cell and check if the data is missing.
     for row_count in range(num_rows):
         row = dataset[row_count]
-        print("Scanning row..")
+        print("Scanning row..")  # SLOW PROCESSING TODO: Make more efficient.
 
         for column_count in range(len(row)):
             column = row[column_count]
@@ -132,10 +135,22 @@ def missing_data_scan(num_columns, dataset):
             if column == "" or re.fullmatch("\s+", column):
                 missing_data_pos[column_count].append(row_count)
 
-    # region Display the missing data information.
-    print("\tMissing Value Count:")
+    # region Display the Missing Data Information
+    # To improve performance removed any column IDs that do not contain any missing data.
+    cols_to_remove = []
+
+    print("\n\tMissing Value Count:")
     for column_id in missing_data_pos:
         print("\tColumnID:", column_id, ",  Num Rows:", len(missing_data_pos[column_id]))
+
+        if len(missing_data_pos[column_id]) == 0:
+            cols_to_remove.append(column_id)
+
+    print()
+
+    for column_id in cols_to_remove:
+        del missing_data_pos[column_id]
+    # endregion
 
     return missing_data_pos
 
@@ -242,6 +257,33 @@ def regex_validation(dataset):
     return dataset
 
 
+@time_function
+def remove_missing_data(dataset, missing_data_pos):
+
+    for row_index in missing_data_pos:
+        print("Removing Missing Data..")
+        del dataset[row_index]
+
+    return dataset
+
+
+"""@time_function
+def remove_missing_data(dataset, missing_data_pos):
+    cleaner_dataset = []
+
+    for row_id in range(len(dataset)):
+        print("Removing Missing Data..")
+        row = dataset[row_id]
+
+        if (row_id not in missing_data_pos) and (row not in cleaner_dataset):
+            cleaner_dataset.append(dataset[row_id])
+
+        elif row_id in missing_data_pos:
+            del missing_data_pos[0]  # The index here is always 0 because the list is sorted.
+
+    return cleaner_dataset"""
+
+
 def clean_data(dataset):
     """
         Cleans the loaded data according to the pre-processing strings - prep_str, which are constructed with
@@ -261,22 +303,21 @@ def clean_data(dataset):
         -------
         (list) dataset: 2D list that contains the now clean dataset.
     """
-    cleaner_dataset = []
     num_columns = len(dataset[0])
     missing_data_pos = missing_data_scan(num_columns, dataset)
 
+    # Combine all the missing data lists so that it is easier to validate a row.
+    temp = []
+    for row_id_list in missing_data_pos.values():
+        temp += row_id_list
+
+    missing_data_pos = list(set(temp))
+    missing_data_pos.sort(reverse=True)
+
     if input("\nWould you like to remove all the missing data? Y/N\n").upper() == "Y":
-        for row_id in range(len(dataset)):
-            for column_id in missing_data_pos:
-                if len(missing_data_pos[column_id]) != 0:
-                    if row_id not in missing_data_pos[column_id]:
-                        cleaner_dataset.append(dataset[row_id])
-                    else:
-                        index = missing_data_pos[column_id].index(row_id)
-                        del missing_data_pos[column_id][index]
+        dataset = remove_missing_data(dataset, missing_data_pos)
 
-    return cleaner_dataset
-
+    return dataset
 # endregion
 
 

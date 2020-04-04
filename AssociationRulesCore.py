@@ -25,7 +25,7 @@ import re
 from HashTree import HashTree, generate_subsets
 from Utilities import time_function
 
-
+# TODO: Add relative support to the frequent itemsets.txt file.
 # TODO: Check all possible rules for a subset and which one has strong confidence.
 # TODO: Create graph visualisation
 
@@ -47,9 +47,11 @@ def load_data(path, prep_required=False):
     with open(path, 'r') as file_object:
         reader = csv.reader(file_object)
         dataset = list(reader)
+        print("<< ", len(dataset), " >> rows loaded from the given dataset.")
 
     if prep_required:
-        dataset = clean_data(copy.deepcopy(dataset[1:]))
+        full_dataset, itemsets = clean_data(copy.deepcopy(dataset[1:]), "OnlineRetail")
+        dataset = itemsets
 
     # Reduces the dimension of the dataset from 2D to 1D. This is done by applying the add function from
     # the operator module to all rows in the dataset, equivalent to -> for row in dataset: temp_list += row.
@@ -57,8 +59,6 @@ def load_data(path, prep_required=False):
 
     # Fetches all the unique elements from the list and sorts them, this allows to easier manage the data.
     u_element_list = sorted(set(temp_list))
-
-    print("<< ", len(dataset), " >> rows loaded from the given dataset.")
     print("<< ", len(u_element_list), " >> Unique Elements Found ---> ", u_element_list, end="\n\n")
 
     return dataset, u_element_list
@@ -121,11 +121,11 @@ def missing_data_scan(num_columns, dataset):
     missing_data_pos = {count: [] for count in range(num_columns)}
 
     num_rows = len(dataset)
+    print("Scanning row for missing data..")
 
     # Look through the dataset cell by cell and check if the data is missing.
-    for row_count in range(num_rows):
+    for row_count in range(num_rows):  # SLOW PROCESSING TODO: Make more efficient.
         row = dataset[row_count]
-        print("Scanning row..")  # SLOW PROCESSING TODO: Make more efficient.
 
         for column_count in range(len(row)):
             column = row[column_count]
@@ -139,17 +139,23 @@ def missing_data_scan(num_columns, dataset):
     # To improve performance removed any column IDs that do not contain any missing data.
     cols_to_remove = []
 
-    print("\n\tMissing Value Count:")
+    print("\n\tMissing Value Count Per Column:")
     for column_id in missing_data_pos:
-        print("\tColumnID:", column_id, ",  Num Rows:", len(missing_data_pos[column_id]))
+        print("\tColumn Index:", column_id, ",  Num Rows:", len(missing_data_pos[column_id]))
 
         if len(missing_data_pos[column_id]) == 0:
             cols_to_remove.append(column_id)
 
-    print()
-
     for column_id in cols_to_remove:
         del missing_data_pos[column_id]
+
+    # Combine all the missing data lists so that it is easier to validate a row.
+    temp = []
+    for row_id_list in missing_data_pos.values():
+        temp += row_id_list
+
+    missing_data_pos = list(set(temp))
+    print("\n\tOverall number of rows with missing data after scan.  -->  ", len(missing_data_pos))
     # endregion
 
     return missing_data_pos
@@ -171,11 +177,12 @@ def regex_validation(dataset):
     4) Date - "^([0]\d|[1][0-2])\/([0-2]\d|[3][0-1])\/([2][01]|[1][6-9])\d{2}(\s([0-1]\d|[2][0-3])(\:[0-5]\d){1,2})?$"
        This is a regular expression to validate a date string in the formats:
        DD/MM/YYYY; DD/MM/YYYY HH:MM; DD/MM/YYYY HH:MM:SS
-    5) TitleCaseWords - "[A-Z][a-z]+" - any word that starts with capital letter but the rest are all lowercase letters.
+    5) TitleCaseWords - "[A-Z][a-z]+(\s[A-Z][a-z]+)*" - any number of words that start with capital letter
+       but the rest are all lowercase letters.
     """
     # This list contains some common pre-constructed regex to allow easy reuse.
     prep_regex = {"EmptyOrJustSpaces": "\s", "AllNumbers-S": "^\d[\d]*$", "AnyCharOrNum+S": ".+",
-                  "UnitPrice": "^£{0,1}([0-9]+\.[0-9]*[1-9]+)|([1-9][0-9]*)", "TitleCaseWords": "[A-Z][a-z]+",
+                  "UnitPrice": "^£{0,1}([0-9]+\.[0-9]*[1-9]+)|([1-9][0-9]*)", "TitleCaseWords": "[A-Z][a-z]+(\s[A-Z][a-z]+)*",
                   "Date": "(^([0-2]\d|[3][0-1])\/([0]\d|[1][0-2])\/([2][01]|[1][6-9])\d{2}(\s{1,4}([0-1]\d|[2][0-3])(\:[0-5]\d){1,2})?$)"
                   }
 
@@ -189,10 +196,10 @@ def regex_validation(dataset):
     # Example Structure: {0: {50:"0"}, 1: {8:"85099C"}, 2:{}}
     compromised_rows = {count: {} for count in range(num_columns)}
 
+    print("Scanning for erroneous data..")
     # Look through the dataset cell by cell and apply the regex validation to each cell/value.
     for row_count in range(len(dataset)):
         row = dataset[row_count]
-        print("Scanning row..")
 
         for column_count in range(len(row)):
             column = row[column_count]
@@ -230,61 +237,28 @@ def regex_validation(dataset):
         else:
             print("Invalid Input, the ColumnID ranges from 0 to", num_columns - 1, "!")
     # endregion
-    """
-    # This code is not essential for the overall program so it has been commented out to improve performance. 
-    cust_invo_match = {}
-
-    for i in range(len(dataset)):
-        row = dataset[i]
-        invoice_id = row[0]
-        customer_id = row[6]
-
-        if invoice_id not in cust_invo_match:
-            cust_invo_match.update({invoice_id: [customer_id]})
-        else:
-            if customer_id not in cust_invo_match[invoice_id]:
-                cust_invo_match[invoice_id].append(customer_id)
-
-    print("Num Invoices (Unique Invoice IDS): ", len(cust_invo_match.keys()))
-
-    single_custID = 0
-    for value in cust_invo_match.values():
-        if len(value) == 1:
-            single_custID += 1
-
-    print("Num Invoices with single CustomerID: ", single_custID)"""
-
-    return dataset
 
 
 @time_function
-def remove_missing_data(dataset, missing_data_pos):
+def remove_data(dataset, data_pos):
+    """
+    Removes the data by row index, starting at the largest index and moving on until reaching smallest.
 
-    for row_index in missing_data_pos:
-        print("Removing Missing Data..")
+    (2D list) dataset: the current dataset in use.
+    (1D list) data_pos: a 1D list of row indices.
+    """
+    print("Removing Data..")
+
+    # Reverse sort needs to be preformed on the data so that the removal can work with no issues.
+    data_pos.sort(reverse=True)
+
+    for row_index in data_pos:
         del dataset[row_index]
 
-    return dataset
+    print("Number of rows remaining: ", len(dataset))
 
 
-"""@time_function
-def remove_missing_data(dataset, missing_data_pos):
-    cleaner_dataset = []
-
-    for row_id in range(len(dataset)):
-        print("Removing Missing Data..")
-        row = dataset[row_id]
-
-        if (row_id not in missing_data_pos) and (row not in cleaner_dataset):
-            cleaner_dataset.append(dataset[row_id])
-
-        elif row_id in missing_data_pos:
-            del missing_data_pos[0]  # The index here is always 0 because the list is sorted.
-
-    return cleaner_dataset"""
-
-
-def clean_data(dataset):
+def clean_data(dataset, ds_name):
     """
         Cleans the loaded data according to the pre-processing strings - prep_str, which are constructed with
         regular expressions (regex).
@@ -303,21 +277,49 @@ def clean_data(dataset):
         -------
         (list) dataset: 2D list that contains the now clean dataset.
     """
+    print("\nDATASET SIZE: ", len(dataset))
     num_columns = len(dataset[0])
     missing_data_pos = missing_data_scan(num_columns, dataset)
 
-    # Combine all the missing data lists so that it is easier to validate a row.
-    temp = []
-    for row_id_list in missing_data_pos.values():
-        temp += row_id_list
+    if input("Would you like to remove all the missing data? Y/N\n").upper() == "Y":
+        remove_data(dataset, missing_data_pos)
 
-    missing_data_pos = list(set(temp))
-    missing_data_pos.sort(reverse=True)
+    regex_validation(dataset)
 
-    if input("\nWould you like to remove all the missing data? Y/N\n").upper() == "Y":
-        dataset = remove_missing_data(dataset, missing_data_pos)
+    # Specialised Pre-processing.
+    if ds_name == "OnlineRetail":
+        # 1) Remove all records of cancelled orders.
+        # 1.1) Find the indices of the records containing cancelled orders.
+        cancelled_orders_indices = []
+        print("Scanning for cancelled records..")
+        for row_index in range(len(dataset)):
+            row = dataset[row_index]  # row[0] is the invoice column.
 
-    return dataset
+            if row[0][0] == "C":  # Cancelled records have invoice IDs that start with C.
+                cancelled_orders_indices.append(row_index)
+
+        print("<< ", len(cancelled_orders_indices), " >> records with cancelled order data found in column 0.")
+
+        # 1.2) Pass the index data to the remove function.
+        remove_data(dataset, cancelled_orders_indices)
+        regex_validation(dataset)
+
+        # 2) Extract itemsets, one itemset/purchase is a combination of the rows with the same InvoiceID.
+        itemsets = []
+
+        current_invoice_id, current_itemset = dataset[0][0], []
+        for row in dataset:
+            row_invoice_id = row[0]  # InvoiceNo Column
+            row_item_id = row[2]     # Description Column
+
+            if current_invoice_id != row_invoice_id:
+                current_invoice_id = row_invoice_id
+                itemsets.append(current_itemset)
+                current_itemset = []
+
+            current_itemset.append(row_item_id)
+
+    return dataset, itemsets
 # endregion
 
 
@@ -331,7 +333,7 @@ class AssociationRules:
 
         # APPLY DATA PRE-PROCESSING
         # Load the dataset into the transactions variable & construct an alphabetically sorted list of unique items.
-        self.transactions, self.unique_items = load_data(data_path)
+        self.transactions, self.unique_items = load_data(data_path, prep_required=False)
 
         # Generate maps of integer to item and item to integer representation.
         self.item_id_map, self.id_item_map = create_map(self.unique_items)
@@ -395,6 +397,7 @@ class AssociationRules:
         """
         candidate_counts = {}
         tree = HashTree(candidate_list, k=self.HASH_DENOMINATOR, max_leaf_size=100)
+        print("Counting Frequencies of current k-itemsets..")
 
         for transaction in transactions:
             subsets = generate_subsets(transaction, len(candidate_list[0]))
@@ -406,6 +409,7 @@ class AssociationRules:
 
         return candidate_counts
 
+    @time_function
     def generate_frequent_itemsets(self):
         """
         Reads data at the given path and generates frequent itemsets list through the Apriori algorithm.
@@ -432,7 +436,7 @@ class AssociationRules:
         max_freq = max(curr_level_subsets.values())  # 2513
         min_support = round(self.MIN_RELATIVE_SUP * max_freq)  # 60
 
-        # Remove the subsets that do not survive
+        # Remove the subsets that do not survive (TODO: Look for more efficient solution)
         for itemset in curr_level_subsets.keys():
             if curr_level_subsets[itemset] >= min_support:
                 curr_survival_subsets[itemset] = curr_level_subsets[itemset]
@@ -570,14 +574,14 @@ class AssociationRules:
 
 
 if __name__ == '__main__':
-    path = os.getcwd()+'\\Data Repository\\Online Retail.csv'     # simple_dataset, groceries, Online Retail
+    path = os.getcwd()+'\\Data Repository\\groceries.csv'     # simple_dataset, groceries, Online Retail
     rules = AssociationRules(path)  # TODO: Convert to Singleton.
 
     # All the itemsets that have survived Apriori
     frequent_items = rules.generate_frequent_itemsets()
 
     print("\nRULE GENERATION..")
-    print("FILTERING RULES WITH LOW CONFIDENCE...\n\nSURVIVED ASSOCIATION RULES: ")
+    print("REMOVING RULES WITH LOW CONFIDENCE...\n\nSURVIVED ASSOCIATION RULES: ")
     associations = rules.generate_rules(frequent_items)
     rules.display_rules('groceries.csv', associations, frequent_items, write=True)
     num_itemsets = 0

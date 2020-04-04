@@ -17,13 +17,13 @@
 #                                                                                                                     #
 #######################################################################################################################
 
+import os
+import AssociationRulesCore as ARMC
+
 
 # Runs association rules mining core
 def run_ARMC():
-    print("TODO: ARMC CODE HERE")
-    a = 10
-    a += 1
-    return a
+    pass
 
 
 # Runs association rules mining with library
@@ -36,17 +36,20 @@ def run_CFL():
 
 
 def main():
+    alg_run_dict = {'1': run_ARMC, '2': run_ARML, '3': run_CFL}
 
-    alg_run_dict = {'1': run_ARMC(), '2': run_ARML(), '3': run_CFL()}
+    print("\nPlease select the algorithm you wish to run! (1, 2 or 3)"
+          "\n\t1) Association Rules Mining (Core Python)"
+          "\n\t2) Association Rules Mining (Library)"
+          "\n\t3) Collaborative filtering (Library)")
 
-    print("Please select the algorithm you wish to explore! (Example: 1) \n"
-          "1) Association Rules Mining (Core Python)"
-          "2) Association Rules Mining (Library)"
-          "3) Collaborative filtering (Library)")
+    alg_option = input("\n\tEnter chosen option here: ")
 
-    alg_option = input("Enter option number here: ")
-
-    print(alg_run_dict[alg_option])
+    while not (alg_option.isdigit() and 0 < int(alg_option) < 4):
+        print("\nInvalid input, must be a number between 0 and 4!")
+        alg_option = input("Re-enter option here: ")
+    else:
+        alg_run_dict[alg_option]()
 
 
 main()

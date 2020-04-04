@@ -68,7 +68,7 @@ def time_function(fun):
 	def wrapper(*pos_args, **kw_args):
 		start = time.time()
 		returned = fun(*pos_args, **kw_args)
-		print("TIMED FUNCTION: ", round(time.time() - start, 2), "seconds spent in ", fun.__name__)
+		print("TIMED FUNCTION: ", round(time.time() - start, 2), "seconds spent in ", fun.__name__, "\n")
 		return returned
 
 	return wrapper

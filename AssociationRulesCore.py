@@ -323,12 +323,13 @@ def clean_data(dataset, ds_name):
 # endregion
 
 
+# TODO: Convert the class to Singleton
 class AssociationRules:
-    def __init__(self, data_path):
+    def __init__(self, data_path, *, minimum_relative_sup, minimum_confidence=0):
         # TODO: add option to set these variables through the constructor so that multiple association rules algorithms
         #       can be run at the same time if needed.
-        self.MIN_RELATIVE_SUP = 0.024  # 0.024    0.5, 0.5, 10
-        self.MIN_CONF = 0.5
+        self.MIN_RELATIVE_SUP = minimum_relative_sup
+        self.MIN_CONF = minimum_confidence
         self.HASH_DENOMINATOR = 10
 
         # APPLY DATA PRE-PROCESSING
@@ -432,6 +433,22 @@ class AssociationRules:
         curr_level_subsets = self.count_k_itemsets(mapped_u_items, mapped_transactions)
         curr_survival_subsets = {}  # Format: {itemset0: frequency, itemset1: frequency, ... itemsetN: frequency}
 
+        # Find out which item has the highest and which one has the lowest frequency/support.
+        lowest_sup = min(curr_level_subsets.values())
+        highest_sup = max(curr_level_subsets.values())
+
+        # Fetches the key when given a value form a dictionary
+        lsup_item_id = list(curr_level_subsets.keys())[list(curr_level_subsets.values()).index(lowest_sup)]
+        hsup_item_id = list(curr_level_subsets.keys())[list(curr_level_subsets.values()).index(highest_sup)]
+
+        # Use the itemID to get the item name.
+        lsup_item_name = self.id_item_map[int(lsup_item_id[0])]
+        hsup_item_name = self.id_item_map[int(hsup_item_id[0])]
+
+        # Display the results
+        print("Item with Highest Frequency: '", hsup_item_name, "' with ID(", int(hsup_item_id[0]), ") and Frequency (", highest_sup, ")")
+        print("Item with Lowest Frequency: '", lsup_item_name, "' with ID(", int(lsup_item_id[0]), ") and Frequency (", lowest_sup, ")\n")
+
         # Find the highest frequency to use to convert from min relative support to min support.
         max_freq = max(curr_level_subsets.values())  # 2513
         min_support = round(self.MIN_RELATIVE_SUP * max_freq)  # 60
@@ -466,6 +483,20 @@ class AssociationRules:
                     complete_survival_subsets_list.append(curr_survival_subsets)
             else:
                 break
+
+        # Find the highest and lowest supports that belong to the final list of itemsets.
+        lowest = min(complete_survival_subsets_list[0].values())
+        highest = max(complete_survival_subsets_list[0].values())
+
+        for level in complete_survival_subsets_list:
+            if min(level.values()) < lowest:
+                lowest = min(level.values())
+
+            if max(level.values()) < highest:
+                lowest = max(level.values())
+
+        print("Minimum Relative Support:  ", self.MIN_RELATIVE_SUP * 100, "%    Minimum Support: ", min_support,
+              "     Highest Support: ", highest, "     Lowest Support: ", lowest)
 
         pickle.dump(complete_survival_subsets_list, open('l_final.pkl', 'wb+'))
         return complete_survival_subsets_list
@@ -568,20 +599,20 @@ class AssociationRules:
             fo.write("Dataset: " + dataset_name + "\n")
             for k_itemset in frequent_items:
                 for itemset, support in k_itemset.items():
-                    fo.write(str([reverse_map[x] for x in itemset]).strip(bad_chars).replace("'", '') + ' sup(' + str(
-                        support) + ')' + '\n')
+                    fo.write("{"+str([reverse_map[x] for x in itemset]).strip(bad_chars).replace("'", '') +"}, "
+                             + ' sup(' + str(support) + ')' + '\n')
             fo.write("\n\n")
 
 
 if __name__ == '__main__':
     path = os.getcwd()+'\\Data Repository\\groceries.csv'     # simple_dataset, groceries, Online Retail
-    rules = AssociationRules(path)  # TODO: Convert to Singleton.
+    rules = AssociationRules(path, minimum_relative_sup=0.025, minimum_confidence=0.5)
 
     # All the itemsets that have survived Apriori
     frequent_items = rules.generate_frequent_itemsets()
 
     print("\nRULE GENERATION..")
-    print("REMOVING RULES WITH LOW CONFIDENCE...\n\nSURVIVED ASSOCIATION RULES: ")
+    print("REMOVING RULES WITH LOW CONFIDENCE...\n\nASSOCIATION RULES THAT SURVIVED: ")
     associations = rules.generate_rules(frequent_items)
     rules.display_rules('groceries.csv', associations, frequent_items, write=True)
     num_itemsets = 0

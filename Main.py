@@ -23,7 +23,26 @@ import AssociationRulesCore as ARMC
 
 # Runs association rules mining core
 def run_ARMC():
-    pass
+    print("\n\nRUNNING APRIORI ASSOCIATION RULES CORE PYTHON VERSION..")
+
+    path = os.getcwd() + '\\Data Repository\\groceries.csv'  # simple_dataset, groceries, Online Retail
+    rules = ARMC.AssociationRules(path, minimum_relative_sup=0.025, minimum_confidence=0.5)
+
+    # All the itemsets that have survived Apriori
+    frequent_items = rules.generate_frequent_itemsets()
+
+    print("\nRULE GENERATION..")
+    print("REMOVING RULES WITH LOW CONFIDENCE...\n\nSURVIVED ASSOCIATION RULES: ")
+    associations = rules.generate_rules(frequent_items)
+    rules.display_rules('groceries.csv', associations, frequent_items, write=True)
+    num_itemsets = 0
+
+    print("")
+    for k_itemsets_lvl in frequent_items:
+        num_itemsets += len(k_itemsets_lvl)
+
+    print("After Filtering there are: << ", len(associations), " >> number of rules and "
+                                                               "<< ", num_itemsets, " >> number of different itemsets.")
 
 
 # Runs association rules mining with library
@@ -43,7 +62,7 @@ def main():
           "\n\t2) Association Rules Mining (Library)"
           "\n\t3) Collaborative filtering (Library)")
 
-    alg_option = input("\n\tEnter chosen option here: ")
+    alg_option = input("\nEnter chosen option here: ")
 
     while not (alg_option.isdigit() and 0 < int(alg_option) < 4):
         print("\nInvalid input, must be a number between 0 and 4!")

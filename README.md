@@ -29,7 +29,7 @@ This project was developed for the Data Mining module at Teesside University wit
 | 251     | 10%              | 10%        | 86            | 66         |
 | 126     | 5%               | 50%        | 288           | 5          |
 
-
+\n
 ## Contributors
 [Aleksandra Petkova](https://github.com/aleksandra1617) - Association Rules Mining Algorithm (Core Python);
 

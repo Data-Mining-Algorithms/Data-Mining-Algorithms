@@ -20,7 +20,7 @@ This project was developed for the Data Mining module at Teesside University wit
 ```
 
 ## Results
-## Groceries Dataset
+### Groceries Dataset
 
 | Support | Relative Support | Confidence | Num. Itemsets | Num. Rules |
 |---------|------------------|------------|---------------|------------|

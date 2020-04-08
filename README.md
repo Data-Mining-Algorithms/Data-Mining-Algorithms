@@ -8,6 +8,17 @@ This project was developed for the Data Mining module at Teesside University wit
 * [MovieLens](https://grouplens.org/datasets/movielens/100k/) - 100k Rating Records from 1000 users on 1700 movies. 
 
 
+## Output format
+##### Association Rules
+```
+{Precedent itemset}, sup(support count), rel sup(relative support %) ---> {Antecedent itemset}, sup(support count), rel sup(relative support %)- conf(confidence value)
+```
+
+##### Frequent itemsets
+```
+{Frequent itemset}, sup(support count)
+```
+
 ## Contributors
 [Aleksandra Petkova](https://github.com/aleksandra1617) - Association Rules Mining Algorithm (Core Python);
 

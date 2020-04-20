@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # to load dataset from pandas df
-ratings = pd.read_csv('movies_smalltest.csv')
+ratings = pd.read_csv('Data Repository\\movies_smalltest.csv')
 print(ratings)
 # Read data into an array of strings
 ratings_dict = {'users': list(ratings.users),

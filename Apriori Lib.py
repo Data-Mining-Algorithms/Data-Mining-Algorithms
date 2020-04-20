@@ -56,6 +56,7 @@ def hot_encode(x):
     if (x >= 1):
         return 1
 
+
 # # Encoding the data sets
 basket_encoded = basket_France.applymap(hot_encode)
 basket_France = basket_encoded

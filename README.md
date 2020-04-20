@@ -1,6 +1,6 @@
 # Data-Mining-Algorithms
 
-This project was developed for the Data Mining module at Teesside University with the aim to demonstrate and evaluate the use of popular computational techniques for data mining. The project contains implementations of popular Data Mining techniques such as Sequential Pattern Mining, Association Rules Mining, Collaborative Filtering and a variety of datasets to test on.
+This project was developed for the Data Mining module at Teesside University with the aim to demonstrate and evaluate the use of popular computational techniques for data mining. The project contains implementations of popular Data Mining techniques such as Association Rules Mining, Collaborative Filtering and a variety of datasets to test on.
 
 ## Datasets:
 * [Online Retail](https://archive.ics.uci.edu/ml/datasets/Online+Retail) - 500k Records, times series transaction data. 

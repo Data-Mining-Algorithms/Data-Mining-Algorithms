@@ -105,12 +105,6 @@ def missing_data_scan(num_columns, dataset):
     """
     Scans the dataset for missing data and displays the insights to the user.
 
-    Parameters
-    ----------
-    (int) num_columns:
-    (int) num_rows:
-    (2D list) dataset:
-
     Returns
     -------
     (dict) missing_data_pos: dictionary that contains a list of the rows that have missing data, for each column.
